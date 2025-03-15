@@ -27,6 +27,9 @@
                     <a href="#" class="block py-2.5 px-4 text-sm hover:bg-gray-800 flex items-center" onclick="showSection('rejected-deals')">
                         <i class="fas fa-times-circle mr-2"></i> Rejected Deals
                     </a>
+                    <a href="#" class="block py-2.5 px-4 text-sm hover:bg-gray-800 flex items-center" onclick="showSection('pending-deals')">
+                        <i class="fas fa-minus-circle mr-2"></i> Pending Deals
+                    </a>
                 </nav>
             </div>
             <div class="p-4 text-xs text-gray-500 text-center">
@@ -70,6 +73,13 @@
                 <div id="rejected-deals-table" class="bg-white rounded-lg shadow-sm overflow-hidden"></div>
                 <div id="rejected-deals-pagination" class="mt-4 flex justify-between items-center"></div>
             </div>
+
+            <div id="pending-deals" class="section hidden">
+                <h2 class="text-xl font-semibold mb-4">Pending Deals</h2>
+                <div id="pending-deals-table" class="bg-white rounded-lg shadow-sm overflow-hidden"></div>
+                <div id="pending-deals-pagination" class="mt-4 flex justify-between items-center"></div>
+            </div>
+
         </div>
     </div>
 
