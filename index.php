@@ -18,7 +18,7 @@
                     VortexWeb
                 </div>
                 <nav class="mt-4">
-                    <a href="#" class="block py-2.5 px-4 text-sm hover:bg-gray-800 flex items-center" onclick="showSection('all-deals')">
+                    <a href="#" class="block py-2.5 px-4 text-sm hover:bg-gray-800 flex items-center" onclick="showSection('pending-deals')">
                         <i class="fas fa-list mr-2"></i> All Deals
                     </a>
                     <a href="#" class="block py-2.5 px-4 text-sm hover:bg-gray-800 flex items-center" onclick="showSection('approved-deals')">
@@ -27,7 +27,7 @@
                     <a href="#" class="block py-2.5 px-4 text-sm hover:bg-gray-800 flex items-center" onclick="showSection('rejected-deals')">
                         <i class="fas fa-times-circle mr-2"></i> Rejected Deals
                     </a>
-                    <a href="#" class="block py-2.5 px-4 text-sm hover:bg-gray-800 flex items-center" onclick="showSection('pending-deals')">
+                    <a href="#" class="block py-2.5 px-4 text-sm hover:bg-gray-800 flex items-center" onclick="showSection('all-deals')">
                         <i class="fas fa-minus-circle mr-2"></i> Pending Deals
                     </a>
                 </nav>

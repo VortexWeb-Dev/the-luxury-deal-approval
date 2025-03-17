@@ -21,7 +21,10 @@ async function fetchData(filters = {}) {
   try {
     const params = new URLSearchParams();
 
-    Object.keys(filters).forEach((key, index) => {
+    // Always filter deals from CATEGORY_ID = 27
+    params.append("filter[CATEGORY_ID]", "27");
+
+    Object.keys(filters).forEach((key) => {
       params.append(`filter[${key}]`, filters[key]);
     });
 
@@ -31,6 +34,7 @@ async function fetchData(filters = {}) {
       "OPPORTUNITY",
       "UF_CRM_1742018841006",
       "STAGE_ID",
+      "CATEGORY_ID"
     ];
     selectFields.forEach((field, index) => {
       params.append(`select[${index}]`, field);
@@ -52,6 +56,7 @@ async function fetchData(filters = {}) {
     return [];
   }
 }
+
 
 document.addEventListener("DOMContentLoaded", async () => {
   const result = await fetchData();
