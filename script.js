@@ -14,21 +14,27 @@ function getStatusFromStage(stageId) {
     "C27:PREPAYMENT_INVOIC": "Rejected",
     "C27:EXECUTING": "Approved",
   };
-  return stageMapping[stageId] || "unknown";
+  return stageMapping[stageId] || "Pending";
 }
 
-async function fetchData() {
+async function fetchData(filters = {}) {
   try {
     const params = new URLSearchParams();
 
-    params.append("filter[=STAGE_ID][0]", DIRECTORS_APPROVAL_STAGE_ID);
-    params.append("filter[=STAGE_ID][1]", TRANSFER_IN_PROGRESS_STAGE_ID);
+    Object.keys(filters).forEach((key, index) => {
+      params.append(`filter[${key}]`, filters[key]);
+    });
 
-    params.append("select[0]", "ID");
-    params.append("select[1]", "TITLE");
-    params.append("select[2]", "OPPORTUNITY");
-    params.append("select[3]", "UF_CRM_1742018841006");
-    params.append("select[4]", "STAGE_ID");
+    const selectFields = [
+      "ID",
+      "TITLE",
+      "OPPORTUNITY",
+      "UF_CRM_1742018841006",
+      "STAGE_ID",
+    ];
+    selectFields.forEach((field, index) => {
+      params.append(`select[${index}]`, field);
+    });
 
     const response = await fetch(
       `${API_BASE_URL}/crm.deal.list?${params.toString()}`
@@ -36,7 +42,7 @@ async function fetchData() {
     const data = await response.json();
 
     if (data.result) {
-      return data.result;
+      return data;
     } else {
       console.error("Error fetching deals:", data);
       return [];
@@ -48,12 +54,15 @@ async function fetchData() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const deals = await fetchData();
+  const result = await fetchData();
+  const deals = await result["result"];
   console.log(deals);
 
   async function renderStats() {
-    const deals = await fetchData();
-    const totalDeals = deals.length;
+    const result = await fetchData();
+    const deals = await result["result"];
+    console.log(deals);
+    const totalDeals = result.total;
     const totalAmount = deals.reduce(
       (sum, deal) => sum + (parseFloat(deal.OPPORTUNITY) || 0),
       0
@@ -72,7 +81,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }`;
   }
 
-  function renderTable(containerId, data, page = 1) {
+  function renderTable(containerId, data, total, page = 1) {
     const container = document.getElementById(containerId);
     const start = (page - 1) * ITEMS_PER_PAGE;
     const end = start + ITEMS_PER_PAGE;
@@ -116,19 +125,28 @@ document.addEventListener("DOMContentLoaded", async () => {
                       : "text-gray-600"
                   }">${getStatusFromStage(deal.STAGE_ID)}</td>
                   <td class="p-3">
-                      ${
-                        deal.STAGE_ID === TRANSFER_IN_PROGRESS_STAGE_ID
-                          ? `
-                                  <button onclick="updateStatus(${deal.ID}, 'rejected')" title="Reject" class="text-red-600 hover:text-red-800">
-                                      <i class="fas fa-times"></i>
-                                  </button>
-                              `
-                          : `
-                                  <button onclick="updateStatus(${deal.ID}, 'approved')" title="Approve" class="text-green-600 hover:text-green-800 mr-2">
-                                      <i class="fas fa-check"></i>
-                                  </button>
-                              `
-                      }
+                    ${
+                      deal.STAGE_ID === TRANSFER_IN_PROGRESS_STAGE_ID
+                        ? `
+                      <button onclick="updateStatus(${deal.ID}, 'rejected')" title="Reject" class="text-red-600 hover:text-red-800">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    `
+                        : deal.STAGE_ID === DIRECTORS_APPROVAL_STAGE_ID
+                        ? `
+                      <button onclick="updateStatus(${deal.ID}, 'approved')" title="Approve" class="text-green-600 hover:text-green-800 mr-2">
+                        <i class="fas fa-check"></i>
+                      </button>
+                    `
+                        : `
+                      <button onclick="updateStatus(${deal.ID}, 'approved')" title="Approve" class="text-green-600 hover:text-green-800 mr-2">
+                        <i class="fas fa-check"></i>
+                      </button>
+                      <button onclick="updateStatus(${deal.ID}, 'rejected')" title="Reject" class="text-red-600 hover:text-red-800">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    `
+                    }
                   </td>
               </tr>
           `;
@@ -137,11 +155,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     html += `</tbody></table>`;
     container.innerHTML = html;
 
-    renderPagination(
-      containerId.replace("-table", "-pagination"),
-      data.length,
-      page
-    );
+    renderPagination(containerId.replace("-table", "-pagination"), total, page);
   }
 
   function renderPagination(containerId, totalItems, currentPage) {
@@ -185,34 +199,41 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   renderSection = async function (sectionId, page = 1) {
-    let data = await fetchData();
+    let filters = {};
 
-    if (sectionId === "all-deals") {
-    } else if (sectionId === "approved-deals") {
-      data = data.filter((d) => d.STAGE_ID === TRANSFER_IN_PROGRESS_STAGE_ID);
+    if (sectionId === "approved-deals") {
+      filters["STAGE_ID"] = TRANSFER_IN_PROGRESS_STAGE_ID;
     } else if (sectionId === "rejected-deals") {
-      data = data.filter((d) => d.STAGE_ID === DIRECTORS_APPROVAL_STAGE_ID);
+      filters["STAGE_ID"] = DIRECTORS_APPROVAL_STAGE_ID;
+    } else if (sectionId === "pending-deals") {
+      filters[
+        "!=STAGE_ID"
+      ] = `${TRANSFER_IN_PROGRESS_STAGE_ID},${DIRECTORS_APPROVAL_STAGE_ID}`;
     }
 
-    renderTable(`${sectionId}-table`, data, page);
+    const result = await fetchData(filters);
+    const data = await result["result"];
+    const total = await result.total;
+
+    renderTable(`${sectionId}-table`, data, total, page);
   };
 
   updateStatus = async function (dealId, newStatus) {
     let newStageId;
     let rejectionReason = "";
-  
+
     if (newStatus === "approved") {
       newStageId = TRANSFER_IN_PROGRESS_STAGE_ID;
     } else if (newStatus === "rejected") {
       newStageId = DIRECTORS_APPROVAL_STAGE_ID;
-  
+
       rejectionReason = prompt("Please enter the reason for rejection:");
-      
+
       if (!rejectionReason) {
         return;
       }
     }
-  
+
     try {
       const response = await fetch(`${API_BASE_URL}/crm.deal.update`, {
         method: "POST",
@@ -224,14 +245,14 @@ document.addEventListener("DOMContentLoaded", async () => {
           fields: {
             STAGE_ID: newStageId,
             ...(newStatus === "rejected" && {
-              UF_CRM_1742029952767: rejectionReason, 
+              UF_CRM_1742029952767: rejectionReason,
             }),
           },
         }),
       });
-  
+
       const data = await response.json();
-  
+
       if (data.result) {
         renderSection(document.querySelector(".section:not(.hidden)").id);
         renderStats();
@@ -242,7 +263,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.error("Failed to update deal:", error);
     }
   };
-  
 
   showSection = async function (sectionId) {
     document.querySelectorAll(".section").forEach((section) => {
