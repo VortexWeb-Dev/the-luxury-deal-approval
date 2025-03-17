@@ -205,24 +205,32 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   renderSection = async function (sectionId, page = 1) {
     let filters = {};
-
+  
     if (sectionId === "approved-deals") {
       filters["STAGE_ID"] = TRANSFER_IN_PROGRESS_STAGE_ID;
     } else if (sectionId === "rejected-deals") {
       filters["STAGE_ID"] = DIRECTORS_APPROVAL_STAGE_ID;
-    } else if (sectionId === "pending-deals") {
-      filters[
-        "!=STAGE_ID"
-      ] = `${TRANSFER_IN_PROGRESS_STAGE_ID},${DIRECTORS_APPROVAL_STAGE_ID}`;
     }
-
+  
     const result = await fetchData(filters);
-    const data = await result["result"];
-    const total = await result.total;
-
+    let data = await result["result"] || [];
+    let total = result.total || 0;
+  
+    if (sectionId === "pending-deals") {
+      // Fetch all deals first, then filter out Approved & Rejected
+      const allDeals = await fetchData();
+      data = allDeals["result"].filter(
+        (deal) =>
+          deal.STAGE_ID !== TRANSFER_IN_PROGRESS_STAGE_ID &&
+          deal.STAGE_ID !== DIRECTORS_APPROVAL_STAGE_ID
+      );
+      total = data.length;
+    }
+  
     renderTable(`${sectionId}-table`, data, total, page);
   };
-
+  
+  
   updateStatus = async function (dealId, newStatus) {
     let newStageId;
     let rejectionReason = "";
