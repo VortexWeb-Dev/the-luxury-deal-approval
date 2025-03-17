@@ -234,9 +234,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    console.log(newStageId);
-    console.log(rejectionReason);
-
     try {
       const response = await fetch(`${API_BASE_URL}/crm.deal.update`, {
         method: "POST",
@@ -247,7 +244,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           ID: dealId,
           fields: {
             STAGE_ID: newStageId,
-            CATEGORY_ID: 27,
             ...(newStatus === "rejected" && {
               UF_CRM_1742029952767: rejectionReason,
             }),
