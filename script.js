@@ -1,8 +1,8 @@
 const API_BASE_URL =
-  "https://vortexwebclouds.bitrix24.in/rest/201/l50jvwht5fnug2xg";
+  "https://crm.theluxuryrealestate.ae/rest/121/pjkq2khjun2sr1q0";
 
-const DIRECTORS_APPROVAL_STAGE_ID = "C27:PREPAYMENT_INVOIC";
-const TRANSFER_IN_PROGRESS_STAGE_ID = "C27:EXECUTING";
+const DIRECTORS_APPROVAL_STAGE_ID = "C1:PREPAYMENT_INVOIC";
+const TRANSFER_IN_PROGRESS_STAGE_ID = "C1:EXECUTING";
 const ITEMS_PER_PAGE = 10;
 
 let renderSection;
@@ -11,8 +11,8 @@ let showSection;
 
 function getStatusFromStage(stageId) {
   const stageMapping = {
-    "C27:PREPAYMENT_INVOIC": "Rejected",
-    "C27:EXECUTING": "Approved",
+    "C1:PREPAYMENT_INVOIC": "Rejected",
+    "C1:EXECUTING": "Approved",
   };
   return stageMapping[stageId] || "Pending";
 }
@@ -21,8 +21,8 @@ async function fetchData(filters = {}) {
   try {
     const params = new URLSearchParams();
 
-    // Always filter deals from CATEGORY_ID = 27
-    params.append("filter[CATEGORY_ID]", "27");
+    // Always filter deals from CATEGORY_ID = 1
+    params.append("filter[CATEGORY_ID]", "1");
 
     Object.keys(filters).forEach((key) => {
       params.append(`filter[${key}]`, filters[key]);
@@ -34,7 +34,7 @@ async function fetchData(filters = {}) {
       "OPPORTUNITY",
       "UF_CRM_1742018841006",
       "STAGE_ID",
-      "CATEGORY_ID"
+      "CATEGORY_ID",
     ];
     selectFields.forEach((field, index) => {
       params.append(`select[${index}]`, field);
@@ -56,7 +56,6 @@ async function fetchData(filters = {}) {
     return [];
   }
 }
-
 
 document.addEventListener("DOMContentLoaded", async () => {
   const result = await fetchData();
@@ -205,17 +204,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   renderSection = async function (sectionId, page = 1) {
     let filters = {};
-  
+
     if (sectionId === "approved-deals") {
       filters["STAGE_ID"] = TRANSFER_IN_PROGRESS_STAGE_ID;
     } else if (sectionId === "rejected-deals") {
       filters["STAGE_ID"] = DIRECTORS_APPROVAL_STAGE_ID;
     }
-  
+
     const result = await fetchData(filters);
-    let data = await result["result"] || [];
+    let data = (await result["result"]) || [];
     let total = result.total || 0;
-  
+
     if (sectionId === "pending-deals") {
       // Fetch all deals first, then filter out Approved & Rejected
       const allDeals = await fetchData();
@@ -226,11 +225,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
       total = data.length;
     }
-  
+
     renderTable(`${sectionId}-table`, data, total, page);
   };
-  
-  
+
   updateStatus = async function (dealId, newStatus) {
     let newStageId;
     let rejectionReason = "";
