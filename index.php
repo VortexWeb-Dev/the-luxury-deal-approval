@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Referral Module - VortexWeb</title>
+    <title>Referral Module - The Luxury</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -15,7 +15,7 @@
         <div class="w-64 bg-gray-900 text-white flex flex-col justify-between">
             <div>
                 <div class="p-4 text-2xl font-bold border-b border-gray-800 text-center">
-                    VortexWeb
+                    The Luxury
                 </div>
                 <nav class="mt-4">
                     <a href="#" class="block py-2.5 px-4 text-sm hover:bg-gray-800 flex items-center" onclick="showSection('all-deals')">
@@ -46,12 +46,12 @@
                     <p class="text-2xl font-semibold" id="total-deals">0</p>
                 </div>
                 <div class="bg-white p-4 rounded-lg shadow-md">
-                    <p class="text-sm text-gray-500">Total Amount</p>
-                    <p class="text-2xl font-semibold" id="total-amount">$0</p>
+                    <p class="text-sm text-gray-500">Total Commission Amount</p>
+                    <p class="text-2xl font-semibold" id="total-commission-amount">AED 0</p>
                 </div>
                 <div class="bg-white p-4 rounded-lg shadow-md">
-                    <p class="text-sm text-gray-500">Total Referral Amount</p>
-                    <p class="text-2xl font-semibold" id="total-referral">$0</p>
+                    <p class="text-sm text-gray-500">Total Sales Progression Fee</p>
+                    <p class="text-2xl font-semibold" id="total-sales-progression-fee">AED 0</p>
                 </div>
             </div>
 
@@ -62,24 +62,23 @@
                 <div id="all-deals-pagination" class="mt-4 flex justify-between items-center"></div>
             </div>
 
-            <div id="approved-deals" class="section hidden">
-                <h2 class="text-xl font-semibold mb-4">Approved Deals</h2>
-                <div id="approved-deals-table" class="bg-white rounded-lg shadow-sm overflow-hidden"></div>
-                <div id="approved-deals-pagination" class="mt-4 flex justify-between items-center"></div>
-            </div>
-
-            <div id="rejected-deals" class="section hidden">
-                <h2 class="text-xl font-semibold mb-4">Rejected Deals</h2>
-                <div id="rejected-deals-table" class="bg-white rounded-lg shadow-sm overflow-hidden"></div>
-                <div id="rejected-deals-pagination" class="mt-4 flex justify-between items-center"></div>
-            </div>
-
             <div id="pending-deals" class="section hidden">
-                <h2 class="text-xl font-semibold mb-4">Pending Deals</h2>
+                <h2 class="text-xl font-semibold mb-4">Pending Deals (Director Approval)</span></h2>
                 <div id="pending-deals-table" class="bg-white rounded-lg shadow-sm overflow-hidden"></div>
                 <div id="pending-deals-pagination" class="mt-4 flex justify-between items-center"></div>
             </div>
 
+            <div id="rejected-deals" class="section hidden">
+                <h2 class="text-xl font-semibold mb-4">Rejected Deals (Sales Progression Ongoing)</span></h2>
+                <div id="rejected-deals-table" class="bg-white rounded-lg shadow-sm overflow-hidden"></div>
+                <div id="rejected-deals-pagination" class="mt-4 flex justify-between items-center"></div>
+            </div>
+
+            <div id="approved-deals" class="section hidden">
+                <h2 class="text-xl font-semibold mb-4">Approved Deals (Transfer in Progress)</span></h2>
+                <div id="approved-deals-table" class="bg-white rounded-lg shadow-sm overflow-hidden"></div>
+                <div id="approved-deals-pagination" class="mt-4 flex justify-between items-center"></div>
+            </div>
         </div>
     </div>
 

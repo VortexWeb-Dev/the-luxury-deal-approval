@@ -1,18 +1,71 @@
 const API_BASE_URL =
   "https://crm.theluxuryrealestate.ae/rest/121/pjkq2khjun2sr1q0";
 
-const DIRECTORS_APPROVAL_STAGE_ID = "C1:PREPAYMENT_INVOIC";
-const TRANSFER_IN_PROGRESS_STAGE_ID = "C1:EXECUTING";
-const ITEMS_PER_PAGE = 10;
+const PENDING_STAGE_ID = "C1:UC_HJL9ZN";
+const REJECTED_STAGE_ID = "C1:UC_L8K3S7";
+const APPROVED_STAGE_ID = "C1:UC_LKP13Z";
+
+const ITEMS_PER_PAGE = 20;
 
 let renderSection;
 let updateStatus;
 let showSection;
 
+(async () => {
+  const API_URL = `${API_BASE_URL}/user.get`;
+  const CACHE_KEY = "users";
+  const CACHE_TIME_KEY = "users_cache_time";
+  const CACHE_DURATION = 60 * 60 * 1000;
+
+  const cachedData = localStorage.getItem(CACHE_KEY);
+  const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
+
+  if (cachedData && cachedTime && Date.now() - cachedTime < CACHE_DURATION) {
+    console.log("Using cached data");
+    return;
+  }
+
+  let allUsers = [];
+  let start = 0;
+  let batchSize = 50;
+  let hasMore = true;
+
+  while (hasMore) {
+    const response = await fetch(
+      `${API_URL}?start=${start}&select[0]=ID&select[1]=NAME&select[2]=LAST_NAME&filter[ACTIVE]=Y`
+    );
+    const data = await response.json();
+
+    if (data.result) {
+      allUsers = allUsers.concat(data.result);
+    }
+
+    if (data.total && allUsers.length < data.total) {
+      start += batchSize;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  localStorage.setItem(CACHE_KEY, JSON.stringify(allUsers));
+  localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+})();
+
+function getUserId(userId) {
+  const users = JSON.parse(localStorage.getItem("users"));
+  console.log(users);
+  if (users) {
+    const user = users.find((u) => u.ID === userId);
+    return user ? (user.NAME + " " + user.LAST_NAME).trim() : userId;
+  }
+  return userId;
+}
+
 function getStatusFromStage(stageId) {
   const stageMapping = {
-    "C1:PREPAYMENT_INVOIC": "Rejected",
-    "C1:EXECUTING": "Approved",
+    "C1:UC_HJL9ZN": "Pending",
+    "C1:UC_L8K3S7": "Rejected",
+    "C1:UC_LKP13Z": "Approved",
   };
   return stageMapping[stageId] || "Pending";
 }
@@ -21,8 +74,11 @@ async function fetchData(filters = {}) {
   try {
     const params = new URLSearchParams();
 
-    // Always filter deals from CATEGORY_ID = 1
     params.append("filter[CATEGORY_ID]", "1");
+    params.append("filter[STAGE_ID][0]", PENDING_STAGE_ID);
+    params.append("filter[STAGE_ID][1]", REJECTED_STAGE_ID);
+    params.append("filter[STAGE_ID][2]", APPROVED_STAGE_ID);
+    params.append("order[ID]", "desc");
 
     Object.keys(filters).forEach((key) => {
       params.append(`filter[${key}]`, filters[key]);
@@ -31,10 +87,16 @@ async function fetchData(filters = {}) {
     const selectFields = [
       "ID",
       "TITLE",
-      "OPPORTUNITY",
-      "UF_CRM_1742018841006",
+      "ASSIGNED_BY_ID",
       "STAGE_ID",
       "CATEGORY_ID",
+      "UF_CRM_1730898393184",
+      "UF_CRM_1730898417615",
+      "UF_CRM_1730898584288",
+      "UF_CRM_1729232846225",
+      "UF_CRM_1739344734264",
+      "UF_CRM_1740118342834",
+      "UF_CRM_671A261F34FD4",
     ];
     selectFields.forEach((field, index) => {
       params.append(`select[${index}]`, field);
@@ -46,6 +108,7 @@ async function fetchData(filters = {}) {
     const data = await response.json();
 
     if (data.result) {
+      console.log(data);
       return data;
     } else {
       console.error("Error fetching deals:", data);
@@ -62,27 +125,44 @@ document.addEventListener("DOMContentLoaded", async () => {
   const deals = await result["result"];
   console.log(deals);
 
-  async function renderStats() {
-    const result = await fetchData();
-    const deals = await result["result"];
-    console.log(deals);
-    const totalDeals = result.total;
-    const totalAmount = deals.reduce(
-      (sum, deal) => sum + (parseFloat(deal.OPPORTUNITY) || 0),
+  async function renderStats(deals) {
+    const totalDeals = deals.length;
+    const totalCommission = deals.reduce(
+      (sum, deal) => sum + (parseFloat(deal.UF_CRM_1740118342834) || 0),
       0
     );
-    const totalReferral = deals.reduce(
-      (sum, deal) => sum + (parseFloat(deal.UF_CRM_1742018841006) || 0),
+    const totalFee = deals.reduce(
+      (sum, deal) => sum + (parseFloat(deal.UF_CRM_1739344734264) || 0),
       0
     );
 
     document.getElementById("total-deals").textContent = totalDeals;
-    document.getElementById("total-amount").textContent = `$${
-      totalAmount ? totalAmount.toLocaleString() : 0
+    document.getElementById("total-commission-amount").textContent = `AED ${
+      totalCommission ? totalCommission.toLocaleString() : 0
     }`;
-    document.getElementById("total-referral").textContent = `$${
-      totalReferral ? totalReferral.toLocaleString() : 0
+    document.getElementById("total-sales-progression-fee").textContent = `AED ${
+      totalFee ? totalFee.toLocaleString() : 0
     }`;
+  }
+
+  function getLocation(deal) {
+    const locations = [
+      deal.UF_CRM_1730898393184,
+      deal.UF_CRM_1730898417615,
+      deal.UF_CRM_1730898584288,
+      deal.UF_CRM_1729232846225,
+    ];
+
+    return locations.filter(Boolean).join(" - ").trim();
+  }
+
+  function formatMoney(amount) {
+    return new Intl.NumberFormat("en-AE", {
+      style: "currency",
+      currency: "AED",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
   }
 
   function renderTable(containerId, data, total, page = 1) {
@@ -95,10 +175,14 @@ document.addEventListener("DOMContentLoaded", async () => {
           <table class="w-full text-left">
               <thead class="bg-gray-50">
                   <tr>
-                      <th class="p-3 text-sm font-medium text-gray-500">ID</th>
-                      <th class="p-3 text-sm font-medium text-gray-500">Name</th>
-                      <th class="p-3 text-sm font-medium text-gray-500">Amount</th>
-                      <th class="p-3 text-sm font-medium text-gray-500">Referral Amount</th>
+                      <th class="p-3 text-sm font-medium text-gray-500">SI No.</th>
+                      <th class="p-3 text-sm font-medium text-gray-500">Agent Name</th>
+                      <th class="p-3 text-sm font-medium text-gray-500">Property Address</th>
+                      <th class="p-3 text-sm font-medium text-gray-500">Commission Amount</th>
+                      <th class="p-3 text-sm font-medium text-gray-500">Sales Progression Fee</th>
+                      <th class="p-3 text-sm font-medium text-gray-500">Sales Progression Responsible</th>
+                      <th class="p-3 text-sm font-medium text-gray-500">Reason for Rejection</th>
+                      <th class="p-3 text-sm font-medium text-gray-500">CRM Link</th>
                       <th class="p-3 text-sm font-medium text-gray-500">Status</th>
                       <th class="p-3 text-sm font-medium text-gray-500">Action</th>
                   </tr>
@@ -106,52 +190,85 @@ document.addEventListener("DOMContentLoaded", async () => {
               <tbody class="divide-y divide-gray-200">
       `;
 
-    paginatedData.forEach((deal) => {
+    if (paginatedData.length === 0) {
+      html += `
+        <tr>
+          <td colspan="10" class="p-3 text-sm text-gray-900 text-center">No data found</td>
+        </tr>
+      `;
+    }
+
+    paginatedData.forEach((deal, index) => {
       html += `
               <tr>
-                  <td class="p-3 text-sm text-gray-900">${deal.ID}</td>
-                  <td class="p-3 text-sm text-gray-900">${deal.TITLE}</td>
-                  <td class="p-3 text-sm text-gray-900">$${
-                    deal.OPPORTUNITY
-                      ? parseFloat(deal.OPPORTUNITY).toLocaleString()
+                  <td class="p-3 text-sm text-gray-900">${index + 1}</td>
+                  <td class="p-3 text-sm text-gray-900">${getUserId(
+                    deal.ASSIGNED_BY_ID
+                  )}</td>
+                  <td class="p-3 text-sm text-gray-900">${getLocation(
+                    deal
+                  )}</td>
+
+                  <td class="p-3 text-sm text-gray-900">${
+                    deal.UF_CRM_1740118342834
+                      ? formatMoney(deal.UF_CRM_1740118342834)
                       : 0
                   }</td>
-                  <td class="p-3 text-sm text-gray-900">$${
-                    deal.UF_CRM_1742018841006
-                      ? parseFloat(deal.UF_CRM_1742018841006).toLocaleString()
+                  <td class="p-3 text-sm text-gray-900">${
+                    deal.UF_CRM_1739344734264
+                      ? formatMoney(deal.UF_CRM_1739344734264)
                       : 0
                   }</td>
+                  <td class="p-3 text-sm text-gray-900">${getUserId(
+                    deal.ASSIGNED_BY_ID
+                  )}</td>
+                  <td class="p-3 text-sm text-gray-900">${
+                    deal.UF_CRM_671A261F34FD4
+                      ? deal.UF_CRM_671A261F34FD4
+                      : "N/A"
+                  }</td>
+                  <td class="p-3 text-sm text-gray-900">
+                    <a href="https://crm.theluxuryrealestate.ae/crm/deal/details/${
+                      deal.ID
+                    }/" 
+                      target="_blank" 
+                      class="text-blue-600 hover:text-blue-800" 
+                      title="${deal.TITLE}">
+                      <i class="fas fa-link"></i>
+                    </a>
+                  </td>
                   <td class="p-3 text-sm capitalize ${
-                    deal.STAGE_ID === TRANSFER_IN_PROGRESS_STAGE_ID
+                    deal.STAGE_ID === APPROVED_STAGE_ID
                       ? "text-green-600"
-                      : deal.STAGE_ID === DIRECTORS_APPROVAL_STAGE_ID
+                      : deal.STAGE_ID === PENDING_STAGE_ID
                       ? "text-red-600"
                       : "text-gray-600"
                   }">${getStatusFromStage(deal.STAGE_ID)}</td>
                   <td class="p-3">
                     ${
-                      deal.STAGE_ID === TRANSFER_IN_PROGRESS_STAGE_ID
+                      deal.STAGE_ID == APPROVED_STAGE_ID
                         ? `
-                      <button onclick="updateStatus(${deal.ID}, 'rejected')" title="Reject" class="text-red-600 hover:text-red-800">
-                        <i class="fas fa-times"></i>
-                      </button>
-                    `
-                        : deal.STAGE_ID === DIRECTORS_APPROVAL_STAGE_ID
+                          <button onclick="updateStatus(${deal.ID}, 'rejected')" title="Reject" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-times"></i>
+                          </button>
+                        `
+                        : deal.STAGE_ID == PENDING_STAGE_ID
                         ? `
-                      <button onclick="updateStatus(${deal.ID}, 'approved')" title="Approve" class="text-green-600 hover:text-green-800 mr-2">
-                        <i class="fas fa-check"></i>
-                      </button>
-                    `
+                          <button onclick="updateStatus(${deal.ID}, 'approved')" title="Approve" class="text-green-600 hover:text-green-800 mr-2">
+                            <i class="fas fa-check"></i>
+                          </button>
+                          <button onclick="updateStatus(${deal.ID}, 'rejected')" title="Reject" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-times"></i>
+                          </button>
+                        `
                         : `
-                      <button onclick="updateStatus(${deal.ID}, 'approved')" title="Approve" class="text-green-600 hover:text-green-800 mr-2">
-                        <i class="fas fa-check"></i>
-                      </button>
-                      <button onclick="updateStatus(${deal.ID}, 'rejected')" title="Reject" class="text-red-600 hover:text-red-800">
-                        <i class="fas fa-times"></i>
-                      </button>
-                    `
+                          <button onclick="updateStatus(${deal.ID}, 'approved')" title="Approve" class="text-green-600 hover:text-green-800 mr-2">
+                            <i class="fas fa-check"></i>
+                          </button>
+                        `
                     }
                   </td>
+
               </tr>
           `;
     });
@@ -206,27 +323,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     let filters = {};
 
     if (sectionId === "approved-deals") {
-      filters["STAGE_ID"] = TRANSFER_IN_PROGRESS_STAGE_ID;
+      filters["STAGE_ID"] = APPROVED_STAGE_ID;
     } else if (sectionId === "rejected-deals") {
-      filters["STAGE_ID"] = DIRECTORS_APPROVAL_STAGE_ID;
+      filters["STAGE_ID"] = REJECTED_STAGE_ID;
+    } else if (sectionId === "pending-deals") {
+      filters["STAGE_ID"] = PENDING_STAGE_ID;
     }
 
     const result = await fetchData(filters);
     let data = (await result["result"]) || [];
     let total = result.total || 0;
 
-    if (sectionId === "pending-deals") {
-      // Fetch all deals first, then filter out Approved & Rejected
-      const allDeals = await fetchData();
-      data = allDeals["result"].filter(
-        (deal) =>
-          deal.STAGE_ID !== TRANSFER_IN_PROGRESS_STAGE_ID &&
-          deal.STAGE_ID !== DIRECTORS_APPROVAL_STAGE_ID
-      );
-      total = data.length;
-    }
-
     renderTable(`${sectionId}-table`, data, total, page);
+    renderStats(data);
   };
 
   updateStatus = async function (dealId, newStatus) {
@@ -234,11 +343,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     let rejectionReason = "";
 
     if (newStatus === "approved") {
-      newStageId = TRANSFER_IN_PROGRESS_STAGE_ID;
+      newStageId = APPROVED_STAGE_ID;
     } else if (newStatus === "rejected") {
-      newStageId = DIRECTORS_APPROVAL_STAGE_ID;
+      newStageId = REJECTED_STAGE_ID;
 
-      rejectionReason = prompt("Please enter the reason for rejection:");
+      rejectionReason = prompt("Please enter the rejection reason:");
 
       if (!rejectionReason) {
         return;
@@ -256,7 +365,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           fields: {
             STAGE_ID: newStageId,
             ...(newStatus === "rejected" && {
-              UF_CRM_1742029952767: rejectionReason,
+              UF_CRM_671A261F34FD4: rejectionReason,
             }),
           },
         }),
@@ -266,7 +375,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       if (data.result) {
         renderSection(document.querySelector(".section:not(.hidden)").id);
-        renderStats();
+        renderStats(data.result);
       } else {
         console.error("Error updating deal:", data);
       }
@@ -283,7 +392,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderSection(sectionId);
   };
 
-  renderStats();
   showSection("all-deals");
 
   document.querySelectorAll(".nav-button").forEach((button) => {
