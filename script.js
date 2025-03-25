@@ -7,6 +7,8 @@ const APPROVED_STAGE_ID = "C1:UC_LKP13Z";
 
 const ITEMS_PER_PAGE = 20;
 
+const SECONDARY_SALES_DEPT_ID = 17;
+
 let renderSection;
 let updateStatus;
 let showSection;
@@ -21,7 +23,6 @@ let showSection;
   const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
 
   if (cachedData && cachedTime && Date.now() - cachedTime < CACHE_DURATION) {
-    console.log("Using cached data");
     return;
   }
 
@@ -53,7 +54,6 @@ let showSection;
 
 function getUserId(userId) {
   const users = JSON.parse(localStorage.getItem("users"));
-  console.log(users);
   if (users) {
     const user = users.find((u) => u.ID === userId);
     return user ? (user.NAME + " " + user.LAST_NAME).trim() : userId;
@@ -70,8 +70,33 @@ function getStatusFromStage(stageId) {
   return stageMapping[stageId] || "Pending";
 }
 
+async function getUsersByDepartment(departmentId) {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/user.get?filter[UF_DEPARTMENT]=${departmentId}`
+    );
+    const data = await response.json();
+
+    if (data.result) {
+      return data.result.map((user) => Number(user.ID));
+    } else {
+      console.error("Error fetching users:", data);
+      return [];
+    }
+  } catch (error) {
+    console.error("Failed to fetch users:", error);
+    return [];
+  }
+}
+
 async function fetchData(filters = {}) {
   try {
+    const departmentUsers = await getUsersByDepartment(SECONDARY_SALES_DEPT_ID);
+    if (departmentUsers.length === 0) {
+      console.warn("No users found in secondary sales department.");
+      return [];
+    }
+
     const params = new URLSearchParams();
 
     params.append("filter[CATEGORY_ID]", "1");
@@ -108,8 +133,13 @@ async function fetchData(filters = {}) {
     const data = await response.json();
 
     if (data.result) {
-      console.log(data);
-      return data;
+      const filteredDeals = {
+        ...data,
+        result: data.result.filter((deal) =>
+          departmentUsers.includes(Number(deal.ASSIGNED_BY_ID))
+        ),
+      };
+      return filteredDeals;
     } else {
       console.error("Error fetching deals:", data);
       return [];
@@ -123,7 +153,6 @@ async function fetchData(filters = {}) {
 document.addEventListener("DOMContentLoaded", async () => {
   const result = await fetchData();
   const deals = await result["result"];
-  console.log(deals);
 
   async function renderStats(deals) {
     const totalDeals = deals.length;
