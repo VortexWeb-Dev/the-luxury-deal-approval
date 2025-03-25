@@ -95,7 +95,7 @@ async function fetchData(filters = {}) {
       "UF_CRM_1730898584288",
       "UF_CRM_1729232846225",
       "UF_CRM_1739344734264",
-      "UF_CRM_1740118342834",
+      "UF_CRM_1730888558749",
       "UF_CRM_671A261F34FD4",
     ];
     selectFields.forEach((field, index) => {
@@ -128,7 +128,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function renderStats(deals) {
     const totalDeals = deals.length;
     const totalCommission = deals.reduce(
-      (sum, deal) => sum + (parseFloat(deal.UF_CRM_1740118342834) || 0),
+      (sum, deal) => sum + (parseFloat(deal.UF_CRM_1730888558749) || 0),
       0
     );
     const totalFee = deals.reduce(
@@ -210,8 +210,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                   )}</td>
 
                   <td class="p-3 text-sm text-gray-900">${
-                    deal.UF_CRM_1740118342834
-                      ? formatMoney(deal.UF_CRM_1740118342834)
+                    deal.UF_CRM_1730888558749
+                      ? formatMoney(deal.UF_CRM_1730888558749)
                       : 0
                   }</td>
                   <td class="p-3 text-sm text-gray-900">${
