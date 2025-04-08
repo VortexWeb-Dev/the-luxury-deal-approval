@@ -7,8 +7,6 @@ const APPROVED_STAGE_ID = "C1:UC_LKP13Z";
 
 const ITEMS_PER_PAGE = 20;
 
-const SECONDARY_SALES_DEPT_ID = 17;
-
 let renderSection;
 let updateStatus;
 let showSection;
@@ -70,33 +68,8 @@ function getStatusFromStage(stageId) {
   return stageMapping[stageId] || "Pending";
 }
 
-async function getUsersByDepartment(departmentId) {
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/user.get?filter[UF_DEPARTMENT]=${departmentId}`
-    );
-    const data = await response.json();
-
-    if (data.result) {
-      return data.result.map((user) => Number(user.ID));
-    } else {
-      console.error("Error fetching users:", data);
-      return [];
-    }
-  } catch (error) {
-    console.error("Failed to fetch users:", error);
-    return [];
-  }
-}
-
 async function fetchData(filters = {}) {
   try {
-    const departmentUsers = await getUsersByDepartment(SECONDARY_SALES_DEPT_ID);
-    if (departmentUsers.length === 0) {
-      console.warn("No users found in secondary sales department.");
-      return [];
-    }
-
     const params = new URLSearchParams();
 
     params.append("filter[CATEGORY_ID]", "1");
@@ -113,6 +86,7 @@ async function fetchData(filters = {}) {
       "ID",
       "TITLE",
       "ASSIGNED_BY_ID",
+      "UF_CRM_1743242265",
       "STAGE_ID",
       "CATEGORY_ID",
       "UF_CRM_1730898393184",
@@ -120,7 +94,7 @@ async function fetchData(filters = {}) {
       "UF_CRM_1730898584288",
       "UF_CRM_1729232846225",
       "UF_CRM_1739344734264",
-      "UF_CRM_1730888558749",
+      "UF_CRM_1740118342834",
       "UF_CRM_671A261F34FD4",
     ];
     selectFields.forEach((field, index) => {
@@ -133,13 +107,8 @@ async function fetchData(filters = {}) {
     const data = await response.json();
 
     if (data.result) {
-      const filteredDeals = {
-        ...data,
-        result: data.result.filter((deal) =>
-          departmentUsers.includes(Number(deal.ASSIGNED_BY_ID))
-        ),
-      };
-      return filteredDeals;
+      console.log("Fetched deals:", data);
+      return data;
     } else {
       console.error("Error fetching deals:", data);
       return [];
@@ -157,7 +126,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function renderStats(deals) {
     const totalDeals = deals.length;
     const totalCommission = deals.reduce(
-      (sum, deal) => sum + (parseFloat(deal.UF_CRM_1730888558749) || 0),
+      (sum, deal) => sum + (parseFloat(deal.UF_CRM_1740118342834) || 0),
       0
     );
     const totalFee = deals.reduce(
@@ -239,8 +208,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                   )}</td>
 
                   <td class="p-3 text-sm text-gray-900">${
-                    deal.UF_CRM_1730888558749
-                      ? formatMoney(deal.UF_CRM_1730888558749)
+                    deal.UF_CRM_1740118342834
+                      ? formatMoney(deal.UF_CRM_1740118342834)
                       : 0
                   }</td>
                   <td class="p-3 text-sm text-gray-900">${
@@ -249,7 +218,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                       : 0
                   }</td>
                   <td class="p-3 text-sm text-gray-900">${getUserId(
-                    deal.ASSIGNED_BY_ID
+                    deal.UF_CRM_1743242265
                   )}</td>
                   <td class="p-3 text-sm text-gray-900">${
                     deal.UF_CRM_671A261F34FD4
